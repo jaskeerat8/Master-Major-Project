@@ -1,0 +1,13 @@
+Deactivate Local Terminal in pycharm -
+deactivate
+
+Start Zookeeper by typing cmd in search bar after going into C:\kafka\ -
+C:\kafka\bin\windows\zookeeper-server-start.bat C:\kafka\config\zookeeper.properties
+
+Start kafka server by typing cmd in search bar after going into C:\kafka\ -
+C:\kafka\bin\windows\kafka-server-start.bat C:\kafka\config\server.properties
+
+Run to get internet link -
+lt --port 8000 --subdomain capstone
+
+Password for Bitcoin DBMS - capstone
