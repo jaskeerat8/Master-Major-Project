@@ -7,7 +7,11 @@ C:\kafka\bin\windows\zookeeper-server-start.bat C:\kafka\config\zookeeper.proper
 Start kafka server by typing cmd in search bar after going into C:\kafka\ -
 C:\kafka\bin\windows\kafka-server-start.bat C:\kafka\config\server.properties
 
-Run to get internet link -
-lt --port 8000 --subdomain capstone
-
 Password for Bitcoin DBMS - capstone
+
+MATCH (t:Transaction)
+RETURN COUNT(t) AS totalTransactions;
+
+MATCH (t:Transaction)
+WITH t.alert AS alert, COUNT(*) AS count
+RETURN alert, count;

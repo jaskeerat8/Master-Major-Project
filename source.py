@@ -35,12 +35,10 @@ def insert_block_data(block_data):
                 block.size = $size,
                 block.weight = $weight
             """
-            session.run(block_query, {
-                "block_number": block_data["height"], "hash": block_data["hash"], "height": block_data["height"],
-                "merkleroot": block_data["merkleroot"], "time": block_data["time"], "mediantime": block_data["mediantime"],
-                "difficulty": block_data["difficulty"], "nTx": block_data["nTx"], "previousblockhash": block_data["previousblockhash"],
-                "strippedsize": block_data["strippedsize"], "size": block_data["size"], "weight": block_data["weight"]
-            })
+            session.run(block_query, block_number=block_data["height"], hash=block_data["hash"], height=block_data["height"],
+                        merkleroot=block_data["merkleroot"], time=block_data["time"], mediantime=block_data["mediantime"],
+                        difficulty=block_data["difficulty"], nTx=block_data["nTx"], previousblockhash=block_data["previousblockhash"],
+                        strippedsize=block_data["strippedsize"], size=block_data["size"], weight=block_data["weight"])
     print(f"""Block {block_data["height"]} Data Inserted""")
     return True
 

@@ -6,8 +6,7 @@ from scipy import stats
 from datetime import datetime, timedelta
 from confluent_kafka import Consumer
 from neo4j import GraphDatabase
-from sklearn.neighbors import LocalOutlierFactor
-from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import IsolationForest
 pd.set_option("display.max_colwidth", 30)
 
 # Creating a Kafka Consumer instance
@@ -47,8 +46,8 @@ point_analysis_threshold = 4
 point_df = pd.DataFrame(columns=["txid", "value", "timestamp", "alert"])
 multi_variate_threshold = 50
 multi_df = pd.DataFrame(columns=["destination_address", "txid", "timestamp"])
-lof_neighbors = 2
-lof_df = pd.DataFrame(columns=["txid", "value", "timestamp"])
+isolation_contamination = float(0.01)
+iso_df = pd.DataFrame(columns=["txid", "value", "timestamp"])
 
 while True:
     message = consumer.poll(5)
@@ -81,21 +80,18 @@ while True:
             raise_alert(sum(grouped_df[grouped_df["alert"] == 1]["txid"], []))
             #print(grouped_df[["destination_address", "count", "alert"]])
 
-            # LOF
-            lof_df = lof_df.loc[lof_df["timestamp"] >= datetime.now() - timedelta(seconds=10)]
+            # Isolation Forest
+            iso_df = iso_df.loc[iso_df["timestamp"] >= datetime.now() - timedelta(seconds=10)]
             new_record = {"txid": transaction["txid"], "value": transaction["value"], "timestamp": datetime.now()}
-            lof_df = pd.concat([lof_df, pd.DataFrame([new_record])], ignore_index=True)
-            lof_df = lof_df.reset_index(drop=True)
+            iso_df = pd.concat([iso_df, pd.DataFrame([new_record])], ignore_index=True)
+            iso_df = iso_df.reset_index(drop=True)
 
-            if(len(lof_df) >= lof_neighbors):
-                values = lof_df["value"].values.reshape(-1, 1)
-                scaler = StandardScaler()
-                values_scaled = scaler.fit_transform(values)
-                lof = LocalOutlierFactor(n_neighbors=lof_neighbors, contamination=0.1)
-                lof_df["alert"] = lof.fit_predict(values_scaled)
-                raise_alert(lof_df[lof_df["alert"] == -1]["txid"])
-                print(lof_df[["txid", "value", "alert"]])
-            else:
-                pass
+            model = IsolationForest(n_estimators=100, max_samples="auto", contamination=isolation_contamination, random_state=42)
+            model.fit(iso_df[["value"]])
+            iso_df["score"] = model.decision_function(iso_df[["value"]])
+            iso_df["alert"] = model.predict(iso_df[["value"]])
+            raise_alert(iso_df[iso_df["alert"] == -1]["txid"])
+            print(iso_df[["txid", "value", "alert"]])
+
     except json.decoder.JSONDecodeError as e:
         print(f"Waiting For Data: {e}")
