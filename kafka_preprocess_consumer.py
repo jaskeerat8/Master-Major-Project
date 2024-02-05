@@ -35,7 +35,7 @@ def neo4j_clean(transaction):
             transaction.block_number = $block_number
         WITH transaction
         MATCH (block:Block {number: $block_number})
-        CREATE (transaction)-[:INCLUDED_IN]->(block)
+        MERGE (transaction)-[:INCLUDED_IN]->(block)
         """
         session.run(transaction_query, txid=transaction["txid"], time=transaction["time"], hash=transaction["hash"], size=transaction["size"],
                     weight=transaction["weight"], in_degree=transaction["in_degree"], out_degree=transaction["out_degree"],
@@ -57,8 +57,8 @@ def neo4j_clean(transaction):
                 subtransaction.value = $value
             with source, subtransaction
             MATCH (transaction:Transaction {id: $txid})
-            CREATE (source)-[:PERFORMS]->(subtransaction)
-            CREATE (subtransaction)-[:FOR]->(transaction)
+            MERGE (source)-[:PERFORMS]->(subtransaction)
+            MERGE (subtransaction)-[:FOR]->(transaction)
             """
             session.run(source_address_transaction_query, txid=transaction["txid"], sub_txid=source["txid"], value=source["value"],
                         source_address=source_address
@@ -83,8 +83,8 @@ def neo4j_clean(transaction):
                     subtransaction.is_utxo = $is_utxo
                 with destination, subtransaction
                 MATCH (transaction:Transaction {id: $txid})
-                CREATE (transaction)-[:FROM]->(subtransaction)
-                CREATE (subtransaction)-[:RECEIVES]->(destination)
+                MERGE (transaction)-[:FROM]->(subtransaction)
+                MERGE (subtransaction)-[:RECEIVES]->(destination)
                 """
                 session.run(destination_address_transaction_query, txid=transaction["txid"], sub_txid=destination_transaction_id,
                             destination_address=destination_address, value=destination["value"], is_utxo=destination["is_utxo"]
@@ -97,7 +97,7 @@ def neo4j_clean(transaction):
                     subtransaction.is_utxo = $is_utxo
                 with subtransaction
                 MATCH (transaction:Transaction {id: $txid})
-                CREATE (transaction)-[:FROM]->(subtransaction)
+                MERGE (transaction)-[:FROM]->(subtransaction)
                 """
                 session.run(destination_transaction_query, txid=transaction["txid"], sub_txid=destination_transaction_id,
                             value=destination["value"], is_utxo=destination["is_utxo"]
@@ -127,7 +127,7 @@ def neo4j_processed(transaction):
     with neo4j_driver.session(database=processed_database) as session:
         block_transaction_query = """
         MERGE (transaction:Transaction {id: $txid})
-        SET transaction.time = $time,
+        SET transaction.timestamp = $timestamp,
             transaction.value = $value,
             transaction.alert = 0,
             transaction.in_degree = $in_degree,
@@ -137,9 +137,9 @@ def neo4j_processed(transaction):
             transaction.block_number = $block_number
         with transaction
         MATCH (block:Block {number: $block_number})
-        CREATE (transaction)-[:INCLUDED_IN]->(block)
+        MERGE (transaction)-[:INCLUDED_IN]->(block)
         """
-        session.run(block_transaction_query, txid=transaction["txid"], time=transaction["time"], value=transaction["value"],
+        session.run(block_transaction_query, txid=transaction["txid"], timestamp=transaction["time"], value=transaction["value"],
                     in_degree=transaction["in_degree"], out_degree=transaction["out_degree"], total_degree=transaction["total_degree"],
                     nu_out_degree=transaction["nu_out_degree"], block_number=transaction["block_number"]
         )
@@ -148,7 +148,7 @@ def neo4j_processed(transaction):
             MERGE (source:Address {address: $source_address})
             WITH source
             MATCH (transaction:Transaction {id: $txid})
-            CREATE (source)-[:PERFORMS]->(transaction)
+            MERGE (source)-[:PERFORMS]->(transaction)
             """
             session.run(source_address_query, source_address=source, txid=transaction["txid"])
         for destination in transaction["destination"]:
@@ -156,7 +156,7 @@ def neo4j_processed(transaction):
             MERGE (destination:Address {address: $destination_address})
             WITH destination
             MATCH (transaction:Transaction {id: $txid})
-            CREATE (transaction)-[:RECEIVES]->(destination)
+            MERGE (transaction)-[:RECEIVES]->(destination)
             """
             session.run(destination_address_query, destination_address=destination, txid=transaction["txid"])
 
@@ -192,7 +192,7 @@ def main():
     consumer_config = {
         "bootstrap.servers": "localhost:9092",
         "group.id": "transaction_consumer",
-        "auto.offset.reset": "latest",
+        "auto.offset.reset": "earliest",
         "enable.auto.commit": True
     }
 

@@ -9,6 +9,9 @@ C:\kafka\bin\windows\kafka-server-start.bat C:\kafka\config\server.properties
 
 Password for Bitcoin DBMS - capstone
 
+
+Test Commands -
+
 MATCH (t:Transaction)
 RETURN COUNT(t) AS totalTransactions;
 
