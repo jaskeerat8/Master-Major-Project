@@ -37,7 +37,7 @@ def raise_alert(transaction_df):
 
 
 # Creating a Kafka Consumer instance
-consumer_topic = "transaction_alerts"
+consumer_topic = "transaction_statistical_alerts"
 consumer = Consumer({
     "bootstrap.servers": "localhost:9092",
     "group.id": "isolation_forest_consumer",
@@ -47,7 +47,7 @@ consumer = Consumer({
 consumer.subscribe([consumer_topic])
 
 while True:
-    message = consumer.poll(5000)
+    message = consumer.poll(5)
     try:
         if (message is not None):
             transaction = json.loads(message.value().decode("utf-8"))

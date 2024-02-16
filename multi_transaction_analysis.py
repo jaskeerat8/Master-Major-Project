@@ -36,7 +36,7 @@ def raise_alert(transaction_list, count_of_transactions):
 
 
 # Creating a Kafka Consumer instance
-consumer_topic = "transaction_alerts"
+consumer_topic = "transaction_statistical_alerts"
 consumer = Consumer({
     "bootstrap.servers": "localhost:9092",
     "group.id": "multi_transaction_consumer",
@@ -46,12 +46,12 @@ consumer = Consumer({
 consumer.subscribe([consumer_topic])
 count = 0
 while True:
-    message = consumer.poll(5000)
+    message = consumer.poll(5)
     try:
         if (message is not None):
             transaction = json.loads(message.value().decode("utf-8"))
             transaction_time = datetime.utcfromtimestamp(message.timestamp()[1] / 1000)
-            transaction_df = pd.DataFrame([{"txid": transaction["txid"], "destination_address": transaction["destination"], "timestamp": transaction_time, "raised_alert": 0}])
+            transaction_df = pd.DataFrame([{"txid": transaction["txid"], "destination_address": [address[0] for address in transaction["destination"]], "timestamp": transaction_time, "raised_alert": 0}])
             transaction_df = transaction_df.explode("destination_address", ignore_index=True)
             count = count + 1
 

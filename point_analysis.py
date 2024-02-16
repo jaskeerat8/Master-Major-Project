@@ -35,7 +35,7 @@ def raise_alert(transaction_df):
 
 
 # Creating a Kafka Consumer instance
-consumer_topic = "transaction_alerts"
+consumer_topic = "transaction_statistical_alerts"
 consumer = Consumer({
     "bootstrap.servers": "localhost:9092",
     "group.id": "point_analysis_consumer",
@@ -45,7 +45,7 @@ consumer = Consumer({
 consumer.subscribe([consumer_topic])
 
 while True:
-    message = consumer.poll(5000)
+    message = consumer.poll(5)
     try:
         if (message is not None):
             transaction = json.loads(message.value().decode("utf-8"))
@@ -59,8 +59,9 @@ while True:
             q1 = df["value"].quantile(0.25)
             iqr = q3 - q1
             upper_whisker = q3 + (1.5 * iqr)
+            threshold = max(df["value"].quantile(0.975), upper_whisker)
 
-            df["alert"] = df["value"].apply(lambda x: 1 if x > upper_whisker else 0)
+            df["alert"] = df["value"].apply(lambda x: 1 if x > threshold else 0)
             df.sort_values(by=["alert", "value"], ascending=False, inplace=True)
             raise_alert(df[(df["alert"] == 1) & (df["raised_alert"] == 0)][["txid", "value"]])
 

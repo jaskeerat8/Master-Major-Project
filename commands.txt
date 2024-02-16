@@ -18,3 +18,8 @@ RETURN COUNT(t) AS totalTransactions;
 MATCH (t:Transaction)
 WITH t.alert AS alert, COUNT(*) AS count
 RETURN alert, count;
+
+MATCH (t:Transaction)
+WHERE t.isolation_alert = 1 AND t.zscore_alert = 1 AND t.point_alert = 1
+RETURN t;
+
