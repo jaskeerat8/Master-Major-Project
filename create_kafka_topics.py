@@ -15,9 +15,8 @@ print("After Deleting Topics:", topics)
 
 # Creating Topics
 topics = [
-    NewTopic(topic="block_transactions", num_partitions=4, replication_factor=0),
-    NewTopic(topic="transaction_statistical_alerts", num_partitions=1, replication_factor=0),
-    NewTopic(topic="transaction_supervised_alerts", num_partitions=1, replication_factor=0)
+    NewTopic(topic="block_transactions", num_partitions=2, replication_factor=0),
+    NewTopic(topic="transaction_statistical_alerts", num_partitions=1, replication_factor=0)
 ]
 created_topics = admin_client.create_topics(topics)
 for topic, future in created_topics.items():

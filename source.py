@@ -1,11 +1,24 @@
 # Importing Libraries
-import time
-import json
-import requests
-import random
+import os, csv
+import time, json
+import random, requests
+from datetime import datetime
 from requests.auth import HTTPBasicAuth
 from confluent_kafka import Producer
 from neo4j import GraphDatabase
+
+# Source Logs
+def log_data(data):
+    log_file = "logs/source_custom_logs.csv"
+    if not os.path.exists(log_file.split("/")[0]):
+        os.makedirs(log_file.split("/")[0])
+    if not os.path.exists(log_file):
+        with open(log_file, "w", newline="") as file:
+            writer = csv.writer(file)
+            writer.writerow(["block", "creation_time", "receiver_time"])
+    with open(log_file, "a", newline="") as file:
+        writer = csv.writer(file)
+        writer.writerow(data)
 
 # Creating Session for Neo4j
 URI = "bolt://localhost:7687"
@@ -64,7 +77,7 @@ def kafka_produce_transactions(kafka_producer, topic, transaction_message):
 source_flag = 1
 if(source_flag):
 
-    static_data = r"C:\Users\jaske\Downloads\data_output.json"
+    static_data = r"C:\Users\jaske\Downloads\new_data.json"
     with open(static_data, "r") as file:
         json_data = json.load(file)
 
@@ -74,6 +87,8 @@ if(source_flag):
         for transaction in json_data["transactions"]:
             transaction["block_number"] = json_data["block_info"]["height"]
             transaction["time"] = json_data["block_info"]["time"]
+            transaction["vin"] = [{k: v for k, v in data.items() if k != "txinwitness"} for data in transaction["vin"]]
+            transaction.pop("hex", None)
             kafka_produce_transactions(transaction_producer, transaction_topic, transaction)
             transaction_count = transaction_count + 1
         print(f"{transaction_count} Transactions Sent for Processing")
@@ -84,7 +99,7 @@ if(source_flag):
 else:
     username = "duck"
     password = "duck2"
-    rpc_server_url = "https://ducks.loca.lt/api/data"
+    rpc_server_url = "http://192.168.224.148:5001/api/new_data"
 
     rpc_server = 1
     block_number = float("-inf")
@@ -97,18 +112,27 @@ else:
                 rpc_server = 0
                 print(f"Incurred Old Block: {new_block_number}")
             else:
+                print(f"\nFound New Block: {new_block_number} with {len(json_data['transactions'])} Transactions")
+
+                # Adding File Received Time For Logs
+                log_data([new_block_number, json_data["processed_at"], str(datetime.now())])
+
                 # Sending Block Data
                 insert_block_data(json_data["block_info"])
 
                 # Sending Transaction Data
-                transaction_count = 0
                 for transaction in json_data["transactions"]:
                     transaction["block_number"] = new_block_number
                     transaction["time"] = json_data["block_info"]["time"]
-                    kafka_produce_transactions(transaction_producer, transaction_topic, transaction)
-                    transaction_count = transaction_count + 1
+                    transaction["vin"] = [{k: v for k, v in data.items() if k != "txinwitness"} for data in transaction["vin"]]
+                    transaction.pop("hex", None)
+                    try:
+                        kafka_produce_transactions(transaction_producer, transaction_topic, transaction)
+                    except Exception as e:
+                        print(transaction, "\n")
+                        print("Size:", len(json.dumps(transaction).encode("utf-8")))
 
-                print(f"Found New Block: {new_block_number} with {transaction_count} Transactions")
+                # Setting Flags
                 rpc_server = 1
                 block_number = new_block_number
         except Exception as e:
@@ -116,8 +140,8 @@ else:
             rpc_server = 0
 
         if(rpc_server == 1):
-            print("Waiting for 5 min before checking for new Data")
-            time.sleep(300)
-        else:
             print("Waiting for 1 min before checking for new Data")
             time.sleep(60)
+        else:
+            print("Waiting for 30 sec before trying again")
+            time.sleep(30)

@@ -7,13 +7,16 @@ username = "neo4j"
 password = "capstone"
 neo4j_driver = GraphDatabase.driver(URI, auth=(username, password))
 
-list_of_queries = ["CREATE INDEX FOR (b:Block) ON (b.number);", "CREATE INDEX FOR (t:Transaction) ON (t.id);", "CREATE INDEX FOR (a:Address) ON (a.address);"]
+list_of_queries = {
+    "clean": ["CREATE INDEX FOR (b:Block) ON (b.number);", "CREATE INDEX FOR (t:Transaction) ON (t.id);", "CREATE INDEX FOR (a:Address) ON (a.address);"],
+    "processed": ["CREATE INDEX FOR (b:Block) ON (b.number);", "CREATE INDEX FOR (t:Transaction) ON (t.id);", "CREATE INDEX FOR (s:SubTransaction) ON (s.id);"]
+}
 
-for db in ["clean", "processed"]:
-    for index_query in list_of_queries:
-        with neo4j_driver.session(database=db) as session:
+for database, queries in list_of_queries.items():
+    for query in queries:
+        with neo4j_driver.session(database=database) as session:
             try:
-                session.run(index_query)
+                session.run(query)
                 print("Index Created")
             except Exception as e:
                 print(f"Fault in Creation: {e}")

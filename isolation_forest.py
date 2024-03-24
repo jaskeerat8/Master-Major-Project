@@ -10,7 +10,7 @@ pd.set_option("display.max_colwidth", 20)
 
 
 # Z Score Analysis
-isolation_contamination = float(0.01)
+isolation_contamination = float(0.005)
 df = pd.DataFrame(columns=["txid", "value", "timestamp", "alert", "raised_alert"])
 
 # Creating Session for Neo4j
@@ -42,12 +42,13 @@ consumer = Consumer({
     "bootstrap.servers": "localhost:9092",
     "group.id": "isolation_forest_consumer",
     "auto.offset.reset": "latest",
-    "enable.auto.commit": True
+    "enable.auto.commit": True,
+    "max.poll.interval.ms": 1000000
 })
 consumer.subscribe([consumer_topic])
 
 while True:
-    message = consumer.poll(5)
+    message = consumer.poll(5000)
     try:
         if (message is not None):
             transaction = json.loads(message.value().decode("utf-8"))
