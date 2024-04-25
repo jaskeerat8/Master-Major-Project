@@ -21,11 +21,15 @@ def log_data(data):
         writer.writerow(data)
     return True
 
-def save_data(data, file_number):
-    if not os.path.exists("data"):
-        os.makedirs("data")
-    with open(f"data/{file_number}.json", "w") as file:
-        json.dump(data, file, indent=4)
+
+# Save Data for Cluster Analysis
+def cluster_data(block_data):
+    cluster_data_file = "cluster_data/data.json"
+    if not os.path.exists(cluster_data_file.split("/")[0]):
+        os.makedirs(cluster_data_file.split("/")[0])
+
+    with open(cluster_data_file, "w") as json_file:
+        json_file.write(json.dumps(block_data, indent=4))
     return True
 
 
@@ -70,6 +74,7 @@ def insert_block_data(block_data):
     print(f"""Block {block_data["height"]} Data Inserted""")
     return True
 
+
 # Creating a Kafka producer instance
 transaction_topic = "block_transactions"
 transaction_producer = Producer({
@@ -83,14 +88,15 @@ def kafka_produce_transactions(kafka_producer, topic, transaction_message):
 
 
 # Connecting to Data Source
-source_flag = 1
+source_flag = 0
 if(source_flag == 0):
-    folder_path = "data"
+    folder_path = r"C:\Users\jaske\Downloads\data"
     files = os.listdir(folder_path)
 
     for f in files:
-        with open(f"data/{f}", "r") as file:
+        with open(rf"C:\Users\jaske\Downloads\data\{f}", "r") as file:
             json_data = json.load(file)
+        cluster_data(json_data)
         insert_block_data(json_data["block_info"])
         transaction_count = 0
         for transaction in json_data["transactions"][1:]:
@@ -104,7 +110,6 @@ if(source_flag == 0):
         wait_time = random.choice([5, 6, 7, 8])
         print(f"Waiting For {wait_time} minutes\n")
         time.sleep(wait_time * 60)
-
 else:
     username = "duck"
     password = "duck2"
@@ -126,8 +131,8 @@ else:
                 # Adding File Received Time For Logs
                 log_data([new_block_number, len(json_data["transactions"]), json_data["processed_at"], str(datetime.now())])
 
-                # Saving Data
-                save_data(json_data, new_block_number)
+                # Sending Data for Cluster Analysis
+                cluster_data(json_data)
 
                 # Sending Block Data
                 insert_block_data(json_data["block_info"])

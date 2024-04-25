@@ -67,12 +67,14 @@ async def get_alert_data(block_number: str = None):
         if(block_number is None):
             data_query = """
             MATCH (transaction:Transaction)
+            WHERE transaction.unsupervised_anomaly = 1
             RETURN collect(transaction.txid) AS transactions;
             """
             result = session.run(data_query)
         else:
             data_query = """
             MATCH (transaction:Transaction {block_number: $block_number})
+            WHERE transaction.unsupervised_anomaly = 1
             RETURN collect(transaction.txid) AS transactions;
             """
             result = session.run(data_query, block_number=int(block_number))
