@@ -2,7 +2,7 @@
 import json
 import threading
 from neo4j import GraphDatabase
-from confluent_kafka import Consumer, Producer
+from confluent_kafka import Consumer
 
 # Creating Session for Neo4j
 uri = "bolt://localhost:7687"

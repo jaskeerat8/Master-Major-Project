@@ -2,10 +2,8 @@
 import supervised_analysis
 import uvicorn
 import requests
-from typing import List, Union
-from fastapi import FastAPI, Query
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from typing_extensions import Annotated
 from neo4j import GraphDatabase
 
 # Bitcoin RPC API Server
@@ -40,26 +38,26 @@ async def hello():
             return f"Failed to Connect: {e}"
 
 @app.get("/get_info")
-async def get_info(block_list: Annotated[Union[List[int], None], Query()] = None, transaction_list: Annotated[Union[List[str], None], Query()] = None):
+async def get_info(block_number: str = None, transaction_id: str = None):
     with neo4j_driver.session(database=clean_database) as session:
-        if((block_list is not None) and (transaction_list is not None)):
+        if((block_number is not None) and (transaction_id is not None)):
             return "Pass only one parameter at a time"
-        elif(block_list is not None):
+        elif(block_number is not None):
             block_query = """
             MATCH (n:Block)
-            WHERE n.number IN $block_list
-            RETURN COLLECT(properties(n)) AS blocks
+            WHERE n.number = $block_number
+            RETURN properties(n) AS block_data
             """
-            result = session.run(block_query, block_list=block_list)
-            return result.data()[0]["blocks"]
-        elif(transaction_list is not None):
+            result = session.run(block_query, block_number=int(block_number))
+            return result.data()[0]["block_data"]
+        elif(transaction_id is not None):
             transaction_query = """
             MATCH (n:Transaction)
-            WHERE n.txid IN $transaction_list
-            RETURN COLLECT(properties(n)) AS transactions
+            WHERE n.txid = $transaction_id
+            RETURN properties(n) AS transaction
             """
-            result = session.run(transaction_query, transaction_list=transaction_list)
-            return result.data()[0]["transactions"]
+            result = session.run(transaction_query, transaction_id=transaction_id)
+            return result.data()[0]["transaction"]
 
 @app.get("/get_alert_data")
 async def get_alert_data(block_number: str = None):
@@ -113,7 +111,7 @@ async def get_transaction(transaction_id: str):
         try:
             result = session.run(transaction_query, transaction_id=transaction_id)
             return result.data()[0]["transaction_detail"]
-        except Exception as e:
+        except:
             result = requests.get(rpc_api, params={"query": transaction_id})
             result = result.json()
             payload = {"block_number": result.get("height", None), "txid": result.get("txid", None)}

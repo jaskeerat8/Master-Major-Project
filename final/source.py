@@ -1,5 +1,5 @@
 # Importing Libraries
-import os, csv
+import os, shutil, csv
 import time, json
 import random, requests
 from datetime import datetime
@@ -23,8 +23,9 @@ def log_data(data):
 
 
 # Save Data for Cluster Analysis
+cluster_data_file = "cluster_data/data.json"
+shutil.rmtree(cluster_data_file.split("/")[0], ignore_errors=True)
 def cluster_data(block_data):
-    cluster_data_file = "cluster_data/data.json"
     if not os.path.exists(cluster_data_file.split("/")[0]):
         os.makedirs(cluster_data_file.split("/")[0])
 
@@ -40,6 +41,7 @@ password = "capstone"
 clean_database = "clean"
 processed_database = "processed"
 neo4j_driver = GraphDatabase.driver(URI, auth=(username, password))
+
 with GraphDatabase.driver(URI, auth=(username, password)) as driver:
     try:
         driver.verify_connectivity()

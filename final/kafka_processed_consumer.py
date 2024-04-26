@@ -2,7 +2,6 @@
 import supervised_analysis
 import json
 import threading
-import pandas as pd
 from neo4j import GraphDatabase
 from confluent_kafka import Consumer
 
@@ -17,14 +16,15 @@ def neo4j_processed(session, transaction):
     # Transaction Node
     block_transaction_query = """
     MATCH (block:Block {number: $block_number})
-    CREATE (transaction:Transaction {txid: $txid})
+    MERGE (transaction:Transaction {txid: $txid})
     SET transaction.block_number = $block_number,
+        transaction.time = $time,
         transaction.total_bitcoin_transacted = $total_bitcoin_transacted
     WITH transaction, block
     MERGE (transaction)-[:INCLUDED_IN]->(block)
     """
     session.run(block_transaction_query, txid=transaction["txid"], block_number=transaction["block_number"],
-                total_bitcoin_transacted=transaction["total_bitcoin_transacted"]
+                time=transaction["time"], total_bitcoin_transacted=transaction["total_bitcoin_transacted"]
     )
 
     # VOUT Address Node
