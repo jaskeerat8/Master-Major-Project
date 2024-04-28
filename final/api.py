@@ -113,34 +113,37 @@ async def get_transaction(transaction_id: str):
             result = session.run(transaction_query, transaction_id=transaction_id)
             return result.data()[0]["transaction_detail"]
         except:
-            result = requests.get(rpc_api, params={"query": transaction_id})
-            result = result.json()
-            payload = {"block_number": result.get("height", None), "txid": result.get("txid", None), "time": result.get("time", None)}
+            try:
+                result = requests.get(rpc_api, params={"query": transaction_id})
+                result = result.json()
+                payload = {"block_number": result.get("height", None), "txid": result.get("txid", None), "time": result.get("time", None)}
 
-            vin_list = []
-            for source in result["vin"]:
-                illegal_probability = supervised_analysis.prediction(result, source)
-                vin_list.append({
-                    "supervised_alert": (1 if(illegal_probability >= 0.5) else 0),
-                    "address": source.get("address", None),
-                    "Transaction_type": source.get("Transaction_type", None),
-                    "txid": source.get("txid", None),
-                    "value": source.get("value", None),
-                    "supervised_alert_probability": illegal_probability
-                })
+                vin_list = []
+                for source in result["vin"]:
+                    illegal_probability = supervised_analysis.prediction(result, source)
+                    vin_list.append({
+                        "supervised_alert": (1 if(illegal_probability >= 0.5) else 0),
+                        "address": source.get("address", None),
+                        "Transaction_type": source.get("Transaction_type", None),
+                        "txid": source.get("txid", None),
+                        "value": source.get("value", None),
+                        "supervised_alert_probability": illegal_probability
+                    })
 
-            vout_list = []
-            for destination in result["vout"]:
-                vout_list.append({
-                    "is_utxo": destination.get("is_utxo", None),
-                    "address": destination.get("scriptPubKey", {}).get("address", None),
-                    "Transaction_type": destination.get("Transaction_type", None),
-                    "n": destination.get("n", None),
-                    "value": destination.get("value", None)
-                })
+                vout_list = []
+                for destination in result["vout"]:
+                    vout_list.append({
+                        "is_utxo": destination.get("is_utxo", None),
+                        "address": destination.get("scriptPubKey", {}).get("address", None),
+                        "Transaction_type": destination.get("Transaction_type", None),
+                        "n": destination.get("n", None),
+                        "value": destination.get("value", None)
+                    })
 
-            payload["vin"] = vin_list
-            payload["vout"] = vout_list
+                payload["vin"] = vin_list
+                payload["vout"] = vout_list
+            except Exception as e:
+                payload = e
             return payload
 
 

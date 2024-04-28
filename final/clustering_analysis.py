@@ -2,6 +2,7 @@
 import json
 import pandas as pd
 from neo4j import GraphDatabase
+from confluent_kafka import Consumer
 from datetime import datetime, timedelta
 from sklearn.cluster import DBSCAN
 pd.set_option('display.max_columns', None)
@@ -15,7 +16,6 @@ neo4j_driver = GraphDatabase.driver(uri, auth=(username, password))
 
 # Raise Anomaly
 def raise_alert(alert_df):
-    print(alert_df)
     global main_df
     with neo4j_driver.session(database=processed_database) as session:
         for index, row in alert_df.iterrows():
@@ -25,6 +25,7 @@ def raise_alert(alert_df):
             RETURN transaction
             """
             session.run(alert_query, txid=row["txid"])
+            print("Raised Alert for Transaction:", row["txid"], "with value:", row["value"], "and in_degree:", row["in_degree"])
             main_df.loc[main_df["txid"] == row["txid"], "raised_alert"] = 1
     return True
 
@@ -46,34 +47,37 @@ if __name__ == "__main__":
     # Main DataFrame
     main_df = pd.DataFrame(columns=["block", "txid", "value", "fee", "in_degree", "nu_out_degree", "balance", "influence", "z_score", "time", "raised_alert"])
 
-    cluster_data_file = "cluster_data/data.json"
-    block_number = float("-inf")
-    while True:
-        try:
-            with open(cluster_data_file, "r") as json_file:
-                json_data = json.load(json_file)
+    consumer_topic = "block_data"
+    consumer_config = {
+        "bootstrap.servers": "localhost:9092",
+        "group.id": "clustering_analysis_consumer",
+        "auto.offset.reset": "latest",
+        "enable.auto.commit": True,
+        "max.poll.interval.ms": 1000000
+    }
+    consumer = Consumer(consumer_config)
+    consumer.subscribe([consumer_topic])
 
-            if(block_number == json_data["block_info"]["height"]):
-                continue
-            else:
+    while True:
+        message = consumer.poll(5)
+        try:
+            if (message is not None):
+                json_data = json.loads(message.value().decode("utf-8"))
                 main_df = main_df[main_df["time"] >= datetime.now() - timedelta(minutes=15)]
 
                 block_number = json_data["block_info"]["height"]
+                print("\nNew Block Received:", block_number)
+
                 transaction_df = pd.DataFrame()
                 for transaction in json_data["transactions"][1:]:
-                    transaction_df = transaction_df._append({"block": block_number, "txid": transaction["txid"], "value": float(transaction["receiver_total_received"]),
+                    transaction_df = transaction_df._append({"block": block_number, "txid": transaction["txid"], "value": float(transaction.get("receiver_total_received", 0)),
                     "fee": float(transaction["fee"]), "in_degree": transaction["in_degree"], "nu_out_degree": transaction["nu_out_degree"],
                     "balance": transaction["in_degree"] - transaction["nu_out_degree"],
                     "influence": transaction["in_degree"] / (transaction["in_degree"] + transaction["nu_out_degree"]),
                     "time": datetime.now(), "raised_alert": 0}, ignore_index=True)
-                try:
-                    transaction_df["z_score"] = (transaction_df["value"] - transaction_df["value"].mean()) / transaction_df["value"].std()
-                except:
-                    transaction_df["z_score"] = 0
+                transaction_df["z_score"] = (transaction_df["value"] - transaction_df["value"].mean()) / transaction_df["value"].std()
 
                 main_df = pd.concat([main_df, transaction_df])
-
-                print("\n", block_number)
                 cluster_analysis(main_df, block_number)
         except json.decoder.JSONDecodeError as e:
-            continue
+            print(f"Waiting For Data: {e}")

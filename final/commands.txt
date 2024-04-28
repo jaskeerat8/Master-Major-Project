@@ -22,9 +22,11 @@ OPTIONAL MATCH (transaction:Transaction)-[:INCLUDED_IN]->(block)
 WITH block, COUNT(transaction) AS transactionCount
 RETURN block.number AS blockNumber, transactionCount;
 
-MATCH (t:Transaction)
-WITH t.alert AS alert, COUNT(*) AS count
-RETURN alert, count;
+MATCH (block:Block)
+OPTIONAL MATCH (transaction:Transaction)-[:INCLUDED_IN]->(block)
+WHERE transaction.unsupervised_anomaly = 1
+WITH block, COUNT(transaction) AS transactionCount
+RETURN block.number AS blockNumber, transactionCount;
 
 MATCH (transaction:Transaction)-[:INCLUDED_IN]->(block)
 OPTIONAL MATCH (transaction)-[:OUTPUTS]->(outputSub:SubTransaction)

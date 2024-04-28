@@ -1,5 +1,5 @@
 # Importing Libraries
-import os, shutil, csv
+import os, csv
 import time, json
 import random, requests
 from datetime import datetime
@@ -19,18 +19,6 @@ def log_data(data):
     with open(log_file, "a", newline="") as file:
         writer = csv.writer(file)
         writer.writerow(data)
-    return True
-
-
-# Save Data for Cluster Analysis
-cluster_data_file = "cluster_data/data.json"
-shutil.rmtree(cluster_data_file.split("/")[0], ignore_errors=True)
-def cluster_data(block_data):
-    if not os.path.exists(cluster_data_file.split("/")[0]):
-        os.makedirs(cluster_data_file.split("/")[0])
-
-    with open(cluster_data_file, "w") as json_file:
-        json_file.write(json.dumps(block_data, indent=4))
     return True
 
 
@@ -79,13 +67,18 @@ def insert_block_data(block_data):
 
 # Creating a Kafka producer instance
 transaction_topic = "block_transactions"
-transaction_producer = Producer({
+block_topic = "block_data"
+source_producer = Producer({
     "bootstrap.servers": "localhost:9092",
-    "client.id": "transaction_producer",
+    "client.id": "source_producer",
     "message.max.bytes": 31457280
 })
 def kafka_produce_transactions(kafka_producer, topic, transaction_message):
     kafka_producer.produce(topic=topic, value=json.dumps(transaction_message).encode("utf-8"))
+    kafka_producer.flush()
+    return True
+def kafka_produce_block(kafka_producer, topic, transactions):
+    kafka_producer.produce(topic=topic, value=json.dumps(transactions).encode("utf-8"))
     kafka_producer.flush()
     return True
 
@@ -99,15 +92,17 @@ if(source_flag == 0):
     for f in files:
         with open(folder_path + f"\{f}", "r") as file:
             json_data = json.load(file)
-        cluster_data(json_data)
+
         insert_block_data(json_data["block_info"])
+        kafka_produce_block(source_producer, block_topic, json_data)
+
         transaction_count = 0
         for transaction in json_data["transactions"][1:]:
             transaction["block_number"] = json_data["block_info"]["height"]
             transaction["time"] = json_data["block_info"]["time"]
             transaction["vin"] = [{k: v for k, v in data.items() if k != "txinwitness"} for data in transaction["vin"]]
             transaction.pop("hex", None)
-            kafka_produce_transactions(transaction_producer, transaction_topic, transaction)
+            kafka_produce_transactions(source_producer, transaction_topic, transaction)
             transaction_count = transaction_count + 1
         print(f"{transaction_count} Transactions Sent for Processing")
         wait_time = random.choice([5, 6, 7, 8])
@@ -134,11 +129,11 @@ else:
                 # Adding File Received Time For Logs
                 log_data([new_block_number, len(json_data["transactions"]), json_data["processed_at"], str(datetime.now())])
 
-                # Sending Data for Cluster Analysis
-                cluster_data(json_data)
-
                 # Sending Block Data
                 insert_block_data(json_data["block_info"])
+
+                # Sending Data for Cluster Analysis
+                kafka_produce_block(source_producer, block_topic, json_data)
 
                 # Sending Transaction Data
                 for transaction in json_data["transactions"][1:]:
@@ -147,10 +142,9 @@ else:
                     transaction["vin"] = [{k: v for k, v in data.items() if k != "txinwitness"} for data in transaction["vin"]]
                     transaction.pop("hex", None)
                     try:
-                        kafka_produce_transactions(transaction_producer, transaction_topic, transaction)
-                    except Exception as e:
-                        print(transaction, "\n")
-                        print("Size:", len(json.dumps(transaction).encode("utf-8")))
+                        kafka_produce_transactions(source_producer, transaction_topic, transaction)
+                    except:
+                        print(transaction, "\nSize:", len(json.dumps(transaction).encode("utf-8")))
 
                 # Setting Flags
                 rpc_server = 1
