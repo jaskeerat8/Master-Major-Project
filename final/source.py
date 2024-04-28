@@ -81,7 +81,8 @@ def insert_block_data(block_data):
 transaction_topic = "block_transactions"
 transaction_producer = Producer({
     "bootstrap.servers": "localhost:9092",
-    "client.id": "transaction_producer"
+    "client.id": "transaction_producer",
+    "message.max.bytes": 31457280
 })
 def kafka_produce_transactions(kafka_producer, topic, transaction_message):
     kafka_producer.produce(topic=topic, value=json.dumps(transaction_message).encode("utf-8"))
@@ -96,7 +97,7 @@ if(source_flag == 0):
     files = os.listdir(folder_path)
 
     for f in files:
-        with open(rf"C:\Users\jaske\Downloads\data\{f}", "r") as file:
+        with open(folder_path + f"\{f}", "r") as file:
             json_data = json.load(file)
         cluster_data(json_data)
         insert_block_data(json_data["block_info"])
@@ -115,7 +116,7 @@ if(source_flag == 0):
 else:
     username = "duck"
     password = "duck2"
-    rpc_server_url = "http://192.168.19.148:5001/api/new_data"
+    rpc_server_url = "http://192.168.65.148:5001/api/new_data"
 
     rpc_server = 1
     block_number = float("-inf")

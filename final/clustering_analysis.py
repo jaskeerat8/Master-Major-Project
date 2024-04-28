@@ -66,7 +66,10 @@ if __name__ == "__main__":
                     "balance": transaction["in_degree"] - transaction["nu_out_degree"],
                     "influence": transaction["in_degree"] / (transaction["in_degree"] + transaction["nu_out_degree"]),
                     "time": datetime.now(), "raised_alert": 0}, ignore_index=True)
-                transaction_df["z_score"] = (transaction_df["value"] - transaction_df["value"].mean()) / transaction_df["value"].std()
+                try:
+                    transaction_df["z_score"] = (transaction_df["value"] - transaction_df["value"].mean()) / transaction_df["value"].std()
+                except:
+                    transaction_df["z_score"] = 0
 
                 main_df = pd.concat([main_df, transaction_df])
 

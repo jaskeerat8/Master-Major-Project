@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from neo4j import GraphDatabase
 
 # Bitcoin RPC API Server
-rpc_api = "http://192.168.19.148:5001/query_data"
+rpc_api = "http://192.168.65.148:5001/query_data"
 
 # Creating Session for Neo4j
 URI = "bolt://localhost:7687"
@@ -104,6 +104,7 @@ async def get_transaction(transaction_id: str):
         RETURN {
             txid: transaction.txid,
             block_number: transaction.block_number,
+            time: transaction.time,
             vin: vin,
             vout: vout
         } AS transaction_detail
@@ -114,7 +115,7 @@ async def get_transaction(transaction_id: str):
         except:
             result = requests.get(rpc_api, params={"query": transaction_id})
             result = result.json()
-            payload = {"block_number": result.get("height", None), "txid": result.get("txid", None)}
+            payload = {"block_number": result.get("height", None), "txid": result.get("txid", None), "time": result.get("time", None)}
 
             vin_list = []
             for source in result["vin"]:
