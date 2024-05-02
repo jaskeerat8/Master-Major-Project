@@ -1,10 +1,15 @@
 # Importing Libraries
+import yaml
 from neo4j import GraphDatabase
 
+# Reading Configurations
+with open("configurations.yaml") as f:
+    configurations = yaml.safe_load(f)
+
 # Creating Session for Neo4j
-URI = "bolt://localhost:7687"
-username = "neo4j"
-password = "capstone"
+URI = configurations["neo4j"]["uri"]
+username = configurations["neo4j"]["username"]
+password = configurations["neo4j"]["password"]
 neo4j_driver = GraphDatabase.driver(URI, auth=(username, password))
 
 list_of_queries = {

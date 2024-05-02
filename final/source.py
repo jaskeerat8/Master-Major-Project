@@ -1,5 +1,5 @@
 # Importing Libraries
-import os, csv
+import os, csv, yaml
 import time, json
 import random, requests
 from datetime import datetime
@@ -22,12 +22,16 @@ def log_data(data):
     return True
 
 
+# Reading Configurations
+with open("configurations.yaml") as f:
+    configurations = yaml.safe_load(f)
+
 # Creating Session for Neo4j
-URI = "bolt://localhost:7687"
-username = "neo4j"
-password = "capstone"
-clean_database = "clean"
-processed_database = "processed"
+URI = configurations["neo4j"]["uri"]
+username = configurations["neo4j"]["username"]
+password = configurations["neo4j"]["password"]
+clean_database = configurations["neo4j"]["clean_database"]
+processed_database = configurations["neo4j"]["processed_database"]
 neo4j_driver = GraphDatabase.driver(URI, auth=(username, password))
 
 with GraphDatabase.driver(URI, auth=(username, password)) as driver:
@@ -39,12 +43,12 @@ with GraphDatabase.driver(URI, auth=(username, password)) as driver:
 
 def insert_block_data(block_data):
     with neo4j_driver.session(database=processed_database) as session:
-        block_query = """CREATE (block:Block {number: $block_number})"""
+        block_query = """MERGE (block:Block {number: $block_number})"""
         session.run(block_query, block_number=block_data["height"])
 
     with neo4j_driver.session(database=clean_database) as session:
         block_query = """
-        CREATE (block:Block {number: $block_number})
+        MERGE (block:Block {number: $block_number})
         SET block.hash = $hash,
             block.height = $height,
             block.merkleroot = $merkleroot,
@@ -84,7 +88,7 @@ def kafka_produce_block(kafka_producer, topic, transactions):
 
 
 # Connecting to Data Source
-source_flag = 0
+source_flag = 1
 if(source_flag == 0):
     folder_path = r"C:\Users\jaske\Downloads\data"
     files = os.listdir(folder_path)
@@ -109,9 +113,9 @@ if(source_flag == 0):
         print(f"Waiting For {wait_time} minutes\n")
         time.sleep(wait_time * 60)
 else:
-    username = "duck"
-    password = "duck2"
-    rpc_server_url = "http://192.168.65.148:5001/api/new_data"
+    username = configurations["rpc"]["username"]
+    password = configurations["rpc"]["password"]
+    rpc_server_url = f"""http://{configurations["rpc"]["ip"]}:{configurations["rpc"]["port"]}/api/new_data"""
 
     rpc_server = 1
     block_number = float("-inf")

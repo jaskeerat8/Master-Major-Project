@@ -28,6 +28,11 @@ WHERE transaction.unsupervised_anomaly = 1
 WITH block, COUNT(transaction) AS transactionCount
 RETURN block.number AS blockNumber, transactionCount;
 
+MATCH (transaction:SubTransaction)
+WHERE transaction.supervised_alert_probability = -0.1
+WITH COUNT(transaction) AS transactionCount
+RETURN transactionCount;
+
 MATCH (transaction:Transaction)-[:INCLUDED_IN]->(block)
 OPTIONAL MATCH (transaction)-[:OUTPUTS]->(outputSub:SubTransaction)
 OPTIONAL MATCH (inputSub:SubTransaction)-[:INPUTS]->(transaction)

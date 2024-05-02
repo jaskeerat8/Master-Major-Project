@@ -1,4 +1,5 @@
 # Importing Libraries
+import yaml
 import json
 import pandas as pd
 from neo4j import GraphDatabase
@@ -7,12 +8,16 @@ from datetime import datetime, timedelta
 from sklearn.cluster import DBSCAN
 pd.set_option('display.max_columns', None)
 
+# Reading Configurations
+with open("configurations.yaml") as f:
+    configurations = yaml.safe_load(f)
+
 # Creating Session for Neo4j
-uri = "bolt://localhost:7687"
-username = "neo4j"
-password = "capstone"
-processed_database = "processed"
-neo4j_driver = GraphDatabase.driver(uri, auth=(username, password))
+URI = configurations["neo4j"]["uri"]
+username = configurations["neo4j"]["username"]
+password = configurations["neo4j"]["password"]
+processed_database = configurations["neo4j"]["processed_database"]
+neo4j_driver = GraphDatabase.driver(URI, auth=(username, password))
 
 # Raise Anomaly
 def raise_alert(alert_df):
@@ -35,7 +40,7 @@ def cluster_analysis(cluster_df, block):
 
     x = cluster_df[features]
 
-    dbscan = DBSCAN(eps=0.6, min_samples=7)
+    dbscan = DBSCAN(eps=configurations["dbscan"]["eps"], min_samples=configurations["dbscan"]["min_points"])
     clusters = dbscan.fit_predict(x)
     cluster_df["cluster"] = clusters
 
@@ -63,7 +68,7 @@ if __name__ == "__main__":
         try:
             if (message is not None):
                 json_data = json.loads(message.value().decode("utf-8"))
-                main_df = main_df[main_df["time"] >= datetime.now() - timedelta(minutes=15)]
+                main_df = main_df[main_df["time"] >= datetime.now() - timedelta(minutes=configurations["dbscan"]["time_window"] )]
 
                 block_number = json_data["block_info"]["height"]
                 print("\nNew Block Received:", block_number)

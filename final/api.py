@@ -1,20 +1,25 @@
 # Importing Libraries
 import supervised_analysis
+import ast, yaml
 import uvicorn
 import requests
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from neo4j import GraphDatabase
 
+# Reading Configurations
+with open("configurations.yaml") as f:
+    configurations = yaml.safe_load(f)
+
 # Bitcoin RPC API Server
-rpc_api = "http://192.168.65.148:5001/query_data"
+rpc_api = f"""http://{configurations["rpc"]["ip"]}:{configurations["rpc"]["port"]}/query_data"""
 
 # Creating Session for Neo4j
-URI = "bolt://localhost:7687"
-username = "neo4j"
-password = "capstone"
-clean_database = "clean"
-processed_database = "processed"
+URI = configurations["neo4j"]["uri"]
+username = configurations["neo4j"]["username"]
+password = configurations["neo4j"]["password"]
+clean_database = configurations["neo4j"]["clean_database"]
+processed_database = configurations["neo4j"]["processed_database"]
 neo4j_driver = GraphDatabase.driver(URI, auth=(username, password))
 
 
@@ -57,7 +62,10 @@ async def get_info(block_number: str = None, transaction_id: str = None):
             RETURN properties(n) AS transaction
             """
             result = session.run(transaction_query, transaction_id=transaction_id)
-            return result.data()[0]["transaction"]
+            result = result.data()[0]["transaction"]
+            result["vin"] = ast.literal_eval(result["vin"])
+            result["vout"] = ast.literal_eval(result["vout"])
+            return result
 
 @app.get("/get_alert_data")
 async def get_alert_data(block_number: str = None):
@@ -143,9 +151,9 @@ async def get_transaction(transaction_id: str):
                 payload["vin"] = vin_list
                 payload["vout"] = vout_list
             except Exception as e:
-                payload = e
+                payload = "Not Found"
             return payload
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="localhost", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8000)

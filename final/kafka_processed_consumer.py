@@ -1,16 +1,21 @@
 # Importing Libraries
 import supervised_analysis
+import yaml
 import json
 import threading
 from neo4j import GraphDatabase
 from confluent_kafka import Consumer
 
+# Reading Configurations
+with open("configurations.yaml") as f:
+    configurations = yaml.safe_load(f)
+
 # Creating Session for Neo4j
-uri = "bolt://localhost:7687"
-username = "neo4j"
-password = "capstone"
-processed_database = "processed"
-neo4j_driver = GraphDatabase.driver(uri, auth=(username, password))
+URI = configurations["neo4j"]["uri"]
+username = configurations["neo4j"]["username"]
+password = configurations["neo4j"]["password"]
+processed_database = configurations["neo4j"]["processed_database"]
+neo4j_driver = GraphDatabase.driver(URI, auth=(username, password))
 
 def neo4j_processed(session, transaction):
     # Transaction Node
