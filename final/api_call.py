@@ -5,13 +5,13 @@ response = requests.get(url)
 print(response.json(), "\n")
 
 url = "http://localhost:8000/get_info"
-block_number = 839215
+block_number = 842452
 response = requests.get(url, params={"block_number": block_number})
 print("Returned Block Data:")
 print(response.json(), "\n")
 
 url = "http://localhost:8000/get_info"
-transaction = "a4f5e2eab407bd4ac5e390544d32e6cef4919f519e164d6b41bf0f8b65e84141"
+transaction = "3be2888944146a0ab6c13e5ef08aaf1870461b164426cb83998c6da6dc93ba0a"
 response = requests.get(url, params={"transaction_id": transaction})
 print("Returned Transaction Data:")
 print(response.json(), "\n")
@@ -22,7 +22,7 @@ print("Returned list of Transaction ID with anomalies:")
 print(response.json(), "\n")
 
 url = "http://localhost:8000/get_alert_data"
-block_number = 839215
+block_number = 842452
 response = requests.get(url, params={"block_number": block_number})
 print(f"Returned list of Transaction ID with anomalies in block {block_number}:")
 print(response.json(), "\n")

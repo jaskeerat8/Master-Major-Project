@@ -17,16 +17,16 @@ clean_database = configurations["neo4j"]["clean_database"]
 neo4j_driver = GraphDatabase.driver(URI, auth=(username, password))
 
 def neo4j_clean(session, transaction):
-    # VIN Address Node
+    # VIN Addresses
     vin_list = []
     for source in transaction["vin"]:
         vin_dict = {"address": source["address"], "txid": source["txid"], "value": source["value"], "Transaction_type": source["Transaction_type"]}
         vin_list.append(vin_dict)
 
-    # VOUT Address Node
+    # VOUT Addresses
     vout_list = []
     for destination in transaction["vout"]:
-        vout_dict = {"address": destination.get("scriptPubKey", {}).get("address"), "is_utxo": destination["is_utxo"], "value": destination["value"], "Transaction_type": destination["Transaction_type"]}
+        vout_dict = {"address": destination.get("scriptPubKey", {}).get("address", None), "is_utxo": destination["is_utxo"], "value": destination["value"], "Transaction_type": destination["Transaction_type"]}
         vout_list.append(vout_dict)
 
     # Transaction Node
@@ -48,6 +48,51 @@ def neo4j_clean(session, transaction):
                 fee=transaction["fee"], size=transaction["size"], weight=transaction["weight"],
                 total_bitcoin_transacted=transaction["total_bitcoin_transacted"], vin=str(vin_list), vout=str(vout_list)
     )
+
+    # VIN Address Node
+    for source in transaction["vin"]:
+        source_address_transaction_query = """
+        MATCH (source:Address {address: $source_address})
+        CREATE (subtransaction:SubTransaction {subtxid: $sub_txid})
+        SET subtransaction.address = $source_address,
+            subtransaction.value = $value,
+            subtransaction.Transaction_type = $Transaction_type
+        with source, subtransaction
+        MATCH (transaction:Transaction {txid: $txid})
+        MERGE (source)-[:PERFORMS]->(subtransaction)
+        MERGE (subtransaction)-[:FOR]->(transaction)
+        """
+        session.run(source_address_transaction_query, source_address=source["address"], sub_txid=source["txid"], value=source["value"],
+                    Transaction_type=source["Transaction_type"], txid=transaction["txid"]
+        )
+
+    # VOUT Address Node
+    for destination in transaction["vout"]:
+        destination_transaction_id = str(transaction["txid"]) + "_" + str(destination["n"])
+        destination_address = destination.get("scriptPubKey", {}).get("address", None)
+
+        destination_address_transaction_query = """
+            MERGE (subtransaction:SubTransaction {subtxid: $sub_txid})
+            SET subtransaction.address = $destination_address,
+                subtransaction.value = $value,
+                subtransaction.is_utxo = $is_utxo,
+                subtransaction.Transaction_type = $Transaction_type
+            with subtransaction
+            MATCH (transaction:Transaction {txid: $txid})
+            MERGE (transaction)-[:FROM]->(subtransaction)
+            """
+
+        if(destination_address is not None):
+            destination_address_transaction_query = destination_address_transaction_query + """
+            MERGE (destination:Address {address: $destination_address})
+            MERGE (subtransaction)-[:RECEIVES]->(destination)
+            """
+        else:
+            print("Bitcoin Used Up, No Destination Address Encountered")
+
+        session.run(destination_address_transaction_query, destination_address=destination_address, sub_txid=destination_transaction_id,
+                    value=destination["value"], is_utxo=destination["is_utxo"], Transaction_type=destination["Transaction_type"], txid=transaction["txid"]
+        )
     return True
 
 

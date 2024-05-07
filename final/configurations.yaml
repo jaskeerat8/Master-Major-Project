@@ -8,7 +8,7 @@ neo4j:
 
 # Bitcoin RPC API
 rpc:
-  ip: 192.168.19.148
+  ip: 192.168.29.148
   port: 5001
   username: duck
   password: duck2

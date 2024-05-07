@@ -7,18 +7,26 @@ from requests.auth import HTTPBasicAuth
 from confluent_kafka import Producer
 from neo4j import GraphDatabase
 
-# Source Logs
-def log_data(data):
-    log_file = "logs/data_log.csv"
+# Source Data
+def log_data(log, rpc_api_data):
+    # Writing Log
+    log_file = "log/data_log.csv"
     if not os.path.exists(log_file.split("/")[0]):
         os.makedirs(log_file.split("/")[0])
     if not os.path.exists(log_file):
-        with open(log_file, "w", newline="") as file:
-            writer = csv.writer(file)
-            writer.writerow(["block", "transactions", "creation_time", "receiver_time"])
-    with open(log_file, "a", newline="") as file:
-        writer = csv.writer(file)
-        writer.writerow(data)
+        with open(log_file, "w", newline="") as log_f:
+            writer = csv.writer(log_f)
+            writer.writerow(["block", "transactions", "mining_time", "creation_time", "received_time"])
+    with open(log_file, "a", newline="") as log_f:
+        writer = csv.writer(log_f)
+        writer.writerow(log)
+
+    # Saving Data
+    api_data_file = f"rpc_api_data/{str(rpc_api_data['block_info']['height'])}.json"
+    if not os.path.exists(api_data_file.split("/")[0]):
+        os.makedirs(api_data_file.split("/")[0])
+    with open(api_data_file, "w") as api_file:
+        json.dump(rpc_api_data, api_file, indent=4)
     return True
 
 
@@ -131,7 +139,8 @@ else:
                 print(f"\nFound New Block: {new_block_number} with {len(json_data['transactions'])} Transactions")
 
                 # Adding File Received Time For Logs
-                log_data([new_block_number, len(json_data["transactions"]), json_data["processed_at"], str(datetime.now())])
+                log_data([new_block_number, len(json_data["transactions"]), str(datetime.fromtimestamp(json_data["block_info"]["time"])),
+                          str(datetime.fromisoformat(json_data["processed_at"])), str(datetime.now())], json_data)
 
                 # Sending Block Data
                 insert_block_data(json_data["block_info"])

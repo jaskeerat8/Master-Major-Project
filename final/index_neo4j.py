@@ -13,7 +13,7 @@ password = configurations["neo4j"]["password"]
 neo4j_driver = GraphDatabase.driver(URI, auth=(username, password))
 
 list_of_queries = {
-    "clean": ["CREATE INDEX FOR (b:Block) ON (b.number);", "CREATE INDEX FOR (t:Transaction) ON (t.txid);"],
+    "clean": ["CREATE INDEX FOR (b:Block) ON (b.number);", "CREATE INDEX FOR (t:Transaction) ON (t.txid);", "CREATE INDEX FOR (a:Address) ON (a.address);"],
     "processed": ["CREATE INDEX FOR (b:Block) ON (b.number);", "CREATE INDEX FOR (t:Transaction) ON (t.txid);", "CREATE INDEX FOR (s:SubTransaction) ON (s.txid);"]
 }
 
