@@ -14,6 +14,7 @@ neo4j_driver = GraphDatabase.driver(URI, auth=(username, password))
 
 list_of_queries = {
     "clean": ["CREATE INDEX FOR (b:Block) ON (b.number);", "CREATE INDEX FOR (t:Transaction) ON (t.txid);", "CREATE INDEX FOR (a:Address) ON (a.address);"],
+    "clean-compact": ["CREATE INDEX FOR (b:Block) ON (b.number);", "CREATE INDEX FOR (t:Transaction) ON (t.txid);"],
     "processed": ["CREATE INDEX FOR (b:Block) ON (b.number);", "CREATE INDEX FOR (t:Transaction) ON (t.txid);", "CREATE INDEX FOR (s:SubTransaction) ON (s.txid);"]
 }
 

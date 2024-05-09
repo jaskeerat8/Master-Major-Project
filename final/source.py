@@ -21,7 +21,7 @@ def log_data(log, rpc_api_data):
         writer = csv.writer(log_f)
         writer.writerow(log)
 
-    # Saving Data
+    # Saving Data for Analysis
     api_data_file = f"rpc_api_data/{str(rpc_api_data['block_info']['height'])}.json"
     if not os.path.exists(api_data_file.split("/")[0]):
         os.makedirs(api_data_file.split("/")[0])
@@ -96,9 +96,9 @@ def kafka_produce_block(kafka_producer, topic, transactions):
 
 
 # Connecting to Data Source
-source_flag = 1
+source_flag = 0
 if(source_flag == 0):
-    folder_path = r"C:\Users\jaske\Downloads\data"
+    folder_path = r"rpc_api_data"
     files = os.listdir(folder_path)
 
     for f in files:
@@ -106,7 +106,7 @@ if(source_flag == 0):
             json_data = json.load(file)
 
         insert_block_data(json_data["block_info"])
-        kafka_produce_block(source_producer, block_topic, json_data)
+        #kafka_produce_block(source_producer, block_topic, json_data)
 
         transaction_count = 0
         for transaction in json_data["transactions"][1:]:
@@ -119,7 +119,7 @@ if(source_flag == 0):
         print(f"{transaction_count} Transactions Sent for Processing")
         wait_time = random.choice([5, 6, 7, 8])
         print(f"Waiting For {wait_time} minutes\n")
-        time.sleep(wait_time * 60)
+        #time.sleep(wait_time * 60)
 else:
     username = configurations["rpc"]["username"]
     password = configurations["rpc"]["password"]

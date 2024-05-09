@@ -20,7 +20,7 @@ neo4j_driver = GraphDatabase.driver(URI, auth=(username, password))
 def neo4j_processed(session, transaction):
     # Transaction Node
     block_transaction_query = """
-    MATCH (block:Block {number: $block_number})
+    MERGE (block:Block {number: $block_number})
     MERGE (transaction:Transaction {txid: $txid})
     SET transaction.block_number = $block_number,
         transaction.time = $time,
@@ -42,7 +42,7 @@ def neo4j_processed(session, transaction):
             subtransaction.is_utxo = $is_utxo,
             subtransaction.Transaction_type = $Transaction_type
         with subtransaction
-        MATCH (transaction:Transaction {txid: $txid})
+        MERGE (transaction:Transaction {txid: $txid})
         MERGE (transaction)-[:OUTPUTS]->(subtransaction)
         """
         session.run(destination_address_transaction_query, sub_txid=destination_transaction_id, destination_address=destination.get("scriptPubKey", {}).get("address"),
@@ -53,14 +53,14 @@ def neo4j_processed(session, transaction):
     for source in transaction["vin"]:
         illegal_probability = supervised_analysis.prediction(transaction, source)
         source_address_transaction_query = """
-        CREATE (subtransaction:SubTransaction {txid: $sub_txid})
+        MERGE (subtransaction:SubTransaction {txid: $sub_txid})
         SET subtransaction.address = $source_address,
             subtransaction.value = $value,
             subtransaction.Transaction_type = $Transaction_type,
             subtransaction.supervised_alert = $supervised_alert,
             subtransaction.supervised_alert_probability = $supervised_alert_probability
         with subtransaction
-        MATCH (transaction:Transaction {txid: $txid})
+        MERGE (transaction:Transaction {txid: $txid})
         MERGE (subtransaction)-[:INPUTS]->(transaction)
         """
         session.run(source_address_transaction_query, sub_txid=source["txid"], source_address=source["address"], value=source["value"],

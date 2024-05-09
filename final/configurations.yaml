@@ -3,7 +3,7 @@ neo4j:
   uri: bolt://localhost:7687
   username: neo4j
   password: capstone
-  clean_database: clean
+  clean_database: clean-compact
   processed_database: processed
 
 # Bitcoin RPC API
