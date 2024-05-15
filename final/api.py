@@ -150,7 +150,7 @@ async def get_transaction(transaction_id: str):
 
                 payload["vin"] = vin_list
                 payload["vout"] = vout_list
-            except Exception as e:
+            except:
                 payload = "Not Found"
             return payload
 

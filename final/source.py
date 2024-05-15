@@ -1,4 +1,5 @@
 # Importing Libraries
+#import source_decryption
 import os, csv, yaml
 import time, json
 import random, requests
@@ -96,9 +97,9 @@ def kafka_produce_block(kafka_producer, topic, transactions):
 
 
 # Connecting to Data Source
-source_flag = 0
+source_flag = 1
 if(source_flag == 0):
-    folder_path = r"rpc_api_data"
+    folder_path = r"C:\Users\jaske\Downloads\data"
     files = os.listdir(folder_path)
 
     for f in files:
@@ -106,7 +107,7 @@ if(source_flag == 0):
             json_data = json.load(file)
 
         insert_block_data(json_data["block_info"])
-        #kafka_produce_block(source_producer, block_topic, json_data)
+        kafka_produce_block(source_producer, block_topic, json_data)
 
         transaction_count = 0
         for transaction in json_data["transactions"][1:]:
@@ -119,7 +120,7 @@ if(source_flag == 0):
         print(f"{transaction_count} Transactions Sent for Processing")
         wait_time = random.choice([5, 6, 7, 8])
         print(f"Waiting For {wait_time} minutes\n")
-        #time.sleep(wait_time * 60)
+        time.sleep(wait_time * 60)
 else:
     username = configurations["rpc"]["username"]
     password = configurations["rpc"]["password"]
@@ -131,7 +132,9 @@ else:
         try:
             response = requests.get(rpc_server_url, auth=HTTPBasicAuth(username, password))
             json_data = response.json()
+
             new_block_number = json_data["block_info"]["height"]
+            print(f"{new_block_number} Block Data Decrypted")
             if(new_block_number == block_number):
                 rpc_server = 0
                 print(f"Incurred Old Block: {new_block_number}")
@@ -163,7 +166,7 @@ else:
                 rpc_server = 1
                 block_number = new_block_number
         except Exception as e:
-            print(f"An error occurred: {e}")
+            print(f"An error occurred: {e} not found")
             rpc_server = 0
 
         if(rpc_server == 1):

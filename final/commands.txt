@@ -20,7 +20,8 @@ RETURN COUNT(t) AS totalTransactions;
 MATCH (block:Block)
 OPTIONAL MATCH (transaction:Transaction)-[:INCLUDED_IN]->(block)
 WITH block, COUNT(transaction) AS transactionCount
-RETURN block.number AS blockNumber, transactionCount;
+RETURN block.number AS blockNumber, transactionCount
+ORDER BY blockNumber ASC;
 
 MATCH (block:Block)
 OPTIONAL MATCH (transaction:Transaction)-[:INCLUDED_IN]->(block)
@@ -32,6 +33,12 @@ MATCH (transaction:SubTransaction)
 WHERE transaction.supervised_alert_probability = -0.1
 WITH COUNT(transaction) AS transactionCount
 RETURN transactionCount;
+
+MATCH (transaction:Transaction)-[:INCLUDED_IN]->(block)
+OPTIONAL MATCH (transaction)-[:FROM]->(outputSub:SubTransaction)
+OPTIONAL MATCH (inputSub:SubTransaction)-[:FOR]->(transaction)
+RETURN transaction.txid AS txid, COUNT(DISTINCT inputSub) AS input_count, COUNT(DISTINCT outputSub) AS output_count
+ORDER BY input_count DESC
 
 MATCH (transaction:Transaction)-[:INCLUDED_IN]->(block)
 OPTIONAL MATCH (transaction)-[:OUTPUTS]->(outputSub:SubTransaction)

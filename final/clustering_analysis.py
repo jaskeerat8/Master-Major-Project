@@ -21,16 +21,17 @@ neo4j_driver = GraphDatabase.driver(URI, auth=(username, password))
 
 # Raise Anomaly
 def raise_alert(alert_df):
+
     global main_df
     with neo4j_driver.session(database=processed_database) as session:
-        for index, row in alert_df.iterrows():
+        for index, row in alert_df.sort_values(["value", "influence", "in_degree"], ascending=[False, False, False]).iterrows():
             alert_query = """
             MERGE (transaction:Transaction {txid: $txid})
             SET transaction.unsupervised_anomaly = 1
             RETURN transaction
             """
             session.run(alert_query, txid=row["txid"])
-            print("Raised Alert for Transaction:", row["txid"], "with value:", row["value"], "and in_degree:", row["in_degree"])
+            print("Raised Alert for Transaction:", row["txid"], "with value:", row["value"], "influence:", row["influence"], "and in_degree:", row["in_degree"])
             main_df.loc[main_df["txid"] == row["txid"], "raised_alert"] = 1
     return True
 

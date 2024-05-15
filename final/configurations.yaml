@@ -8,13 +8,13 @@ neo4j:
 
 # Bitcoin RPC API
 rpc:
-  ip: 192.168.29.148
+  ip: 192.168.141.148
   port: 5001
   username: duck
   password: duck2
 
 # Clustering Analysis
 dbscan:
-  eps: 0.5
-  min_points: 7
+  eps: 0.6
+  min_points: 8
   time_window: 15

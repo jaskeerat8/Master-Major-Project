@@ -45,7 +45,7 @@ def neo4j_processed(session, transaction):
         MERGE (transaction:Transaction {txid: $txid})
         MERGE (transaction)-[:OUTPUTS]->(subtransaction)
         """
-        session.run(destination_address_transaction_query, sub_txid=destination_transaction_id, destination_address=destination.get("scriptPubKey", {}).get("address"),
+        session.run(destination_address_transaction_query, sub_txid=destination_transaction_id, destination_address=destination.get("scriptPubKey", {}).get("address", None),
                     value=destination["value"], is_utxo=destination["is_utxo"], Transaction_type=destination["Transaction_type"], txid=transaction["txid"]
         )
 
