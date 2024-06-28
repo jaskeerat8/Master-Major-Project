@@ -97,30 +97,33 @@ def kafka_produce_block(kafka_producer, topic, transactions):
 
 
 # Connecting to Data Source
-source_flag = 1
+source_flag = 0
 if(source_flag == 0):
-    folder_path = r"C:\Users\jaske\Downloads\data"
-    files = os.listdir(folder_path)
+    # folder_path = r"C:\Users\jaske\Downloads\data"
+    # files = os.listdir(folder_path)
 
-    for f in files:
-        with open(folder_path + f"\{f}", "r") as file:
-            json_data = json.load(file)
+    #for f in files:
+    # with open(folder_path + f"\{f}", "r") as file:
+    #     json_data = json.load(file)
 
-        insert_block_data(json_data["block_info"])
-        kafka_produce_block(source_producer, block_topic, json_data)
+    with open(r"C:\Users\jaske\Downloads\rpc_api_data\842539.json", "r") as file:
+        json_data = json.load(file)
 
-        transaction_count = 0
-        for transaction in json_data["transactions"][1:]:
-            transaction["block_number"] = json_data["block_info"]["height"]
-            transaction["time"] = json_data["block_info"]["time"]
-            transaction["vin"] = [{k: v for k, v in data.items() if k != "txinwitness"} for data in transaction["vin"]]
-            transaction.pop("hex", None)
-            kafka_produce_transactions(source_producer, transaction_topic, transaction)
-            transaction_count = transaction_count + 1
-        print(f"{transaction_count} Transactions Sent for Processing")
-        wait_time = random.choice([5, 6, 7, 8])
-        print(f"Waiting For {wait_time} minutes\n")
-        time.sleep(wait_time * 60)
+    insert_block_data(json_data["block_info"])
+    kafka_produce_block(source_producer, block_topic, json_data)
+
+    transaction_count = 0
+    for transaction in json_data["transactions"][1:]:
+        transaction["block_number"] = json_data["block_info"]["height"]
+        transaction["time"] = json_data["block_info"]["time"]
+        transaction["vin"] = [{k: v for k, v in data.items() if k != "txinwitness"} for data in transaction["vin"]]
+        transaction.pop("hex", None)
+        kafka_produce_transactions(source_producer, transaction_topic, transaction)
+        transaction_count = transaction_count + 1
+    print(f"{transaction_count} Transactions Sent for Processing")
+    wait_time = random.choice([5, 6, 7, 8])
+    print(f"Waiting For {wait_time} minutes\n")
+    time.sleep(wait_time * 60)
 else:
     username = configurations["rpc"]["username"]
     password = configurations["rpc"]["password"]

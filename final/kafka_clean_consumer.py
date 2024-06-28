@@ -49,50 +49,50 @@ def neo4j_clean(session, transaction):
                 total_bitcoin_transacted=transaction["total_bitcoin_transacted"], vin=str(vin_list), vout=str(vout_list)
     )
 
-    # # VIN Address Node
-    # for source in transaction["vin"]:
-    #     source_address_transaction_query = """
-    #     MATCH (source:Address {address: $source_address})
-    #     CREATE (subtransaction:SubTransaction {subtxid: $sub_txid})
-    #     SET subtransaction.address = $source_address,
-    #         subtransaction.value = $value,
-    #         subtransaction.Transaction_type = $Transaction_type
-    #     with source, subtransaction
-    #     MATCH (transaction:Transaction {txid: $txid})
-    #     MERGE (source)-[:PERFORMS]->(subtransaction)
-    #     MERGE (subtransaction)-[:FOR]->(transaction)
-    #     """
-    #     session.run(source_address_transaction_query, source_address=source["address"], sub_txid=source["txid"], value=source["value"],
-    #                 Transaction_type=source["Transaction_type"], txid=transaction["txid"]
-    #     )
-    #
-    # # VOUT Address Node
-    # for destination in transaction["vout"]:
-    #     destination_transaction_id = str(transaction["txid"]) + "_" + str(destination["n"])
-    #     destination_address = destination.get("scriptPubKey", {}).get("address", None)
-    #
-    #     destination_address_transaction_query = """
-    #         MERGE (subtransaction:SubTransaction {subtxid: $sub_txid})
-    #         SET subtransaction.address = $destination_address,
-    #             subtransaction.value = $value,
-    #             subtransaction.is_utxo = $is_utxo,
-    #             subtransaction.Transaction_type = $Transaction_type
-    #         with subtransaction
-    #         MATCH (transaction:Transaction {txid: $txid})
-    #         MERGE (transaction)-[:FROM]->(subtransaction)
-    #         """
-    #
-    #     if(destination_address is not None):
-    #         destination_address_transaction_query = destination_address_transaction_query + """
-    #         MERGE (destination:Address {address: $destination_address})
-    #         MERGE (subtransaction)-[:RECEIVES]->(destination)
-    #         """
-    #     else:
-    #         print("Bitcoin Used Up, No Destination Address Encountered")
-    #
-    #     session.run(destination_address_transaction_query, destination_address=destination_address, sub_txid=destination_transaction_id,
-    #                 value=destination["value"], is_utxo=destination["is_utxo"], Transaction_type=destination["Transaction_type"], txid=transaction["txid"]
-    #     )
+    # VIN Address Node
+    for source in transaction["vin"]:
+        source_address_transaction_query = """
+        MATCH (source:Address {address: $source_address})
+        CREATE (subtransaction:SubTransaction {subtxid: $sub_txid})
+        SET subtransaction.address = $source_address,
+            subtransaction.value = $value,
+            subtransaction.Transaction_type = $Transaction_type
+        with source, subtransaction
+        MATCH (transaction:Transaction {txid: $txid})
+        MERGE (source)-[:PERFORMS]->(subtransaction)
+        MERGE (subtransaction)-[:FOR]->(transaction)
+        """
+        session.run(source_address_transaction_query, source_address=source["address"], sub_txid=source["txid"], value=source["value"],
+                    Transaction_type=source["Transaction_type"], txid=transaction["txid"]
+        )
+
+    # VOUT Address Node
+    for destination in transaction["vout"]:
+        destination_transaction_id = str(transaction["txid"]) + "_" + str(destination["n"])
+        destination_address = destination.get("scriptPubKey", {}).get("address", None)
+
+        destination_address_transaction_query = """
+            MERGE (subtransaction:SubTransaction {subtxid: $sub_txid})
+            SET subtransaction.address = $destination_address,
+                subtransaction.value = $value,
+                subtransaction.is_utxo = $is_utxo,
+                subtransaction.Transaction_type = $Transaction_type
+            with subtransaction
+            MATCH (transaction:Transaction {txid: $txid})
+            MERGE (transaction)-[:FROM]->(subtransaction)
+            """
+
+        if(destination_address is not None):
+            destination_address_transaction_query = destination_address_transaction_query + """
+            MERGE (destination:Address {address: $destination_address})
+            MERGE (subtransaction)-[:RECEIVES]->(destination)
+            """
+        else:
+            print("Bitcoin Used Up, No Destination Address Encountered")
+
+        session.run(destination_address_transaction_query, destination_address=destination_address, sub_txid=destination_transaction_id,
+                    value=destination["value"], is_utxo=destination["is_utxo"], Transaction_type=destination["Transaction_type"], txid=transaction["txid"]
+        )
     return True
 
 
@@ -122,5 +122,9 @@ if __name__ == "__main__":
 
     thread1 = threading.Thread(target=consume_messages, args=(consumer_topic, consumer_config, 1))
     thread2 = threading.Thread(target=consume_messages, args=(consumer_topic, consumer_config, 2))
+    thread3 = threading.Thread(target=consume_messages, args=(consumer_topic, consumer_config, 3))
+    thread4 = threading.Thread(target=consume_messages, args=(consumer_topic, consumer_config, 4))
     thread1.start()
     thread2.start()
+    thread3.start()
+    thread4.start()
